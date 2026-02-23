@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { SeatRepository } from '../repositories/seat.repository';
 import { SeatCacheService } from './seat-cache.service';
 import { SeatPublisher } from '../events/publishers/seat.publisher';
-import { SeatUnavailableError } from '../../shared/errors/app-error';
+import { SeatUnavailableError, AppError } from '../../shared/errors/app-error';
 import { SeatState } from '../../shared/types/common.types';
 import { createLogger } from '../../shared/utils/logger';
 
@@ -136,6 +136,36 @@ export class SeatHoldService {
 
     try {
       await session.withTransaction(async () => {
+        const seatCheck = await this.seatRepository.findOne(
+          { seatId, flightId },
+          session
+        );
+
+        if (!seatCheck) {
+          throw new AppError(404, 'SEAT_NOT_FOUND', `Seat ${seatId} not found`);
+        }
+
+        if (seatCheck.state !== SeatState.HELD) {
+          logger.error('Cannot confirm seat - not in HELD state', {
+            seatId,
+            currentState: seatCheck.state,
+            passengerId,
+          });
+          throw new AppError(
+            409,
+            'SEAT_NOT_HELD',
+            `Seat ${seatId} is ${seatCheck.state}, cannot confirm. It may have expired or been released.`
+          );
+        }
+
+        if (seatCheck.heldByPassengerId !== passengerId) {
+          throw new AppError(
+            403,
+            'SEAT_HELD_BY_OTHER',
+            `Seat ${seatId} is held by another passenger`
+          );
+        }
+
         const seat = await this.seatRepository.findOneAndUpdate(
           {
             seatId,
@@ -155,7 +185,11 @@ export class SeatHoldService {
         );
 
         if (!seat) {
-          throw new Error('Seat hold not found or expired');
+          throw new AppError(
+            409,
+            'SEAT_CONFIRMATION_FAILED',
+            'Failed to confirm seat due to concurrent modification'
+          );
         }
 
         logger.info('Seat confirmed', { seatId, flightId, passengerId });

@@ -39,7 +39,6 @@ export class HoldExpirationJob {
 
     try {
       await session.withTransaction(async () => {
-        // Find all expired holds
         const expiredSeats = await this.seatRepository.find({
           state: SeatState.HELD,
           holdExpiresAt: { $lte: new Date() },
@@ -49,9 +48,8 @@ export class HoldExpirationJob {
           return;
         }
 
-        logger.info(`Processing ${expiredSeats.length} expired holds`);
+        logger.info(`Found ${expiredSeats.length} expired holds, releasing seats...`);
 
-        // Release all expired holds
         for (const seat of expiredSeats) {
           await this.seatRepository.findOneAndUpdate(
             { _id: seat._id },
@@ -66,10 +64,14 @@ export class HoldExpirationJob {
             { returnDocument: 'after', session }
           );
 
-          // Invalidate cache
           await this.cacheService.invalidateSeatMap(seat.flightId);
 
-          // Publish event for waitlist processing
+          logger.info('Publishing seat.hold.expired event', {
+            seatId: seat.seatId,
+            flightId: seat.flightId,
+            previousHolder: seat.heldByPassengerId,
+          });
+          
           await this.eventPublisher.publish('seat.hold.expired', {
             seatId: seat.seatId,
             flightId: seat.flightId,

@@ -1,0 +1,14 @@
+node_modules
+dist
+npm-debug.log
+.env
+.git
+.gitignore
+*.md
+tests
+scripts
+postman
+coverage
+.cursor
+agent-transcripts
+terminals

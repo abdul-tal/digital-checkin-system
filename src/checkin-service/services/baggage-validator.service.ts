@@ -23,12 +23,20 @@ export class BaggageValidatorService {
 
   constructor(private weightClient: WeightServiceClient) {}
 
-  async validate(bagCount: number): Promise<BaggageValidation> {
+  async validate(bagCount: number, providedWeights?: number[]): Promise<BaggageValidation> {
     const bags: BagValidationResult[] = [];
 
     for (let i = 0; i < bagCount; i++) {
-      const bagId = `bag-${Date.now()}-${i}`;
-      const weight = await this.weightClient.weighBag(bagId);
+      let weight: number;
+
+      if (providedWeights && providedWeights.length > i) {
+        weight = providedWeights[i];
+        logger.info('Using provided weight', { bagIndex: i, weight });
+      } else {
+        const bagId = `bag-${Date.now()}-${i}`;
+        weight = await this.weightClient.weighBag(bagId);
+        logger.info('Measured weight via Weight Service', { bagIndex: i, weight });
+      }
 
       let result: BagValidationResult;
 

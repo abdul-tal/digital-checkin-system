@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7.0
@@ -10,12 +8,15 @@ services:
       MONGO_INITDB_DATABASE: skyhigh
     volumes:
       - mongodb_data:/data/db
+      - ./scripts/init-replica-set.sh:/docker-entrypoint-initdb.d/init-replica-set.sh:ro
     command: ["--replSet", "rs0", "--bind_ip_all"]
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - skyhigh-network
 
   redis:
     image: redis:7.2-alpine
@@ -29,6 +30,8 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    networks:
+      - skyhigh-network
 
   redis-commander:
     image: rediscommander/redis-commander:latest
@@ -39,6 +42,191 @@ services:
       - "8081:8081"
     depends_on:
       - redis
+    networks:
+      - skyhigh-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skyhigh-api-gateway
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    environment:
+      - SERVICE_NAME=api-gateway
+      - API_GATEWAY_PORT=3000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node dist/api-gateway/index.js
+    networks:
+      - skyhigh-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  seat-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skyhigh-seat-service
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env.docker
+    environment:
+      - SERVICE_NAME=seat-service
+      - SEAT_SERVICE_PORT=3001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node dist/seat-service/index.js
+    networks:
+      - skyhigh-network
+    restart: unless-stopped
+
+  checkin-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skyhigh-checkin-service
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env.docker
+    environment:
+      - SERVICE_NAME=checkin-service
+      - CHECKIN_SERVICE_PORT=3002
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node dist/checkin-service/index.js
+    networks:
+      - skyhigh-network
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skyhigh-payment-service
+    ports:
+      - "3003:3003"
+    env_file:
+      - .env.docker
+    environment:
+      - SERVICE_NAME=payment-service
+      - PAYMENT_SERVICE_PORT=3003
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node dist/payment-service/index.js
+    networks:
+      - skyhigh-network
+    restart: unless-stopped
+
+  waitlist-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skyhigh-waitlist-service
+    ports:
+      - "3004:3004"
+    env_file:
+      - .env.docker
+    environment:
+      - SERVICE_NAME=waitlist-service
+      - WAITLIST_SERVICE_PORT=3004
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node dist/waitlist-service/index.js
+    networks:
+      - skyhigh-network
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skyhigh-notification-service
+    ports:
+      - "3005:3005"
+    env_file:
+      - .env.docker
+    environment:
+      - SERVICE_NAME=notification-service
+      - NOTIFICATION_SERVICE_PORT=3005
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node dist/notification-service/index.js
+    networks:
+      - skyhigh-network
+    restart: unless-stopped
+
+  weight-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skyhigh-weight-service
+    ports:
+      - "3006:3006"
+    env_file:
+      - .env.docker
+    environment:
+      - SERVICE_NAME=weight-service
+      - WEIGHT_SERVICE_PORT=3006
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: node dist/weight-service/index.js
+    networks:
+      - skyhigh-network
+    restart: unless-stopped
+
+  abuse-detection-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skyhigh-abuse-detection-service
+    ports:
+      - "3007:3007"
+    env_file:
+      - .env.docker
+    environment:
+      - SERVICE_NAME=abuse-detection-service
+      - ABUSE_DETECTION_SERVICE_PORT=3007
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: node dist/abuse-detection-service/index.js
+    networks:
+      - skyhigh-network
+    restart: unless-stopped
+
+networks:
+  skyhigh-network:
+    driver: bridge
 
 volumes:
   mongodb_data:

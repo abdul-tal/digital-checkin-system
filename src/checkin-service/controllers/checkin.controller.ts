@@ -44,4 +44,14 @@ export class CheckInController {
       next(error);
     }
   };
+
+  getCheckIn = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { checkInId } = req.params;
+      const result = await this.orchestrator.getCheckIn(checkInId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

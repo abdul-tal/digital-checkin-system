@@ -24,6 +24,7 @@ export interface CompleteCheckInRequest {
   seatId: string;
   baggage: {
     count: number;
+    weights?: number[];
   };
 }
 
@@ -90,7 +91,10 @@ export class CheckInOrchestratorService {
       throw new AppError(409, 'SEAT_UNAVAILABLE', 'Failed to hold seat');
     }
 
-    const baggageValidation = await this.baggageValidator.validate(req.baggage.count);
+    const baggageValidation = await this.baggageValidator.validate(
+      req.baggage.count,
+      req.baggage.weights
+    );
 
     if (!baggageValidation.valid) {
       await this.seatClient.releaseSeat(req.seatId, checkin.flightId);
@@ -253,5 +257,25 @@ export class CheckInOrchestratorService {
     };
 
     await this.finalizeCheckIn(checkin, baggageValidation);
+  }
+
+  async getCheckIn(checkInId: string) {
+    const checkin = await this.checkinRepository.findById(checkInId);
+
+    if (!checkin) {
+      throw new AppError(404, 'CHECKIN_NOT_FOUND', 'Check-in not found');
+    }
+
+    return {
+      checkInId: checkin.checkInId,
+      passengerId: checkin.passengerId,
+      flightId: checkin.flightId,
+      seatId: checkin.seatId,
+      state: checkin.state,
+      boardingPass: checkin.boardingPass,
+      baggage: checkin.baggage,
+      createdAt: checkin.createdAt,
+      completedAt: checkin.completedAt,
+    };
   }
 }

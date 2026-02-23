@@ -21,6 +21,11 @@ async function bootstrap() {
     const { publisher, subscriber } = createPubSubClients();
     const eventBus = new EventBus(publisher, subscriber);
 
+    // Wait for EventBus to be ready
+    logger.info('Waiting for EventBus to be ready...');
+    await eventBus.ready();
+    logger.info('EventBus is ready');
+
     const paymentRepository = new PaymentRepository();
     const eventPublisher = new PaymentPublisher(eventBus);
     const paymentService = new MockPaymentService(paymentRepository, eventPublisher);

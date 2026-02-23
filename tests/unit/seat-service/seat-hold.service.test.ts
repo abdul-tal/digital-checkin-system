@@ -182,6 +182,13 @@ describe('SeatHoldService', () => {
 
   describe('confirmSeat', () => {
     it('should successfully confirm a held seat', async () => {
+      const mockSeatCheck = {
+        seatId: '10A',
+        flightId: 'SK123',
+        state: SeatState.HELD,
+        heldByPassengerId: 'P12345',
+      };
+
       const mockSeat = {
         seatId: '10A',
         flightId: 'SK123',
@@ -197,12 +204,17 @@ describe('SeatHoldService', () => {
       };
 
       jest.spyOn(mongoose, 'startSession').mockResolvedValue(mockSession as any);
+      mockSeatRepository.findOne.mockResolvedValue(mockSeatCheck as any);
       mockSeatRepository.findOneAndUpdate.mockResolvedValue(mockSeat as any);
       mockCacheService.invalidateSeatMap.mockResolvedValue(undefined);
       mockEventPublisher.publish.mockResolvedValue(undefined);
 
       await seatHoldService.confirmSeat('10A', 'SK123', 'P12345');
 
+      expect(mockSeatRepository.findOne).toHaveBeenCalledWith(
+        { seatId: '10A', flightId: 'SK123' },
+        expect.any(Object)
+      );
       expect(mockSeatRepository.findOneAndUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
           seatId: '10A',
@@ -221,7 +233,7 @@ describe('SeatHoldService', () => {
       expect(mockEventPublisher.publish).toHaveBeenCalledWith('seat.confirmed', expect.any(Object));
     });
 
-    it('should throw error if seat hold not found', async () => {
+    it('should throw error if seat not found', async () => {
       const mockSession = {
         withTransaction: jest.fn(async (callback) => {
           return await callback();
@@ -230,11 +242,34 @@ describe('SeatHoldService', () => {
       };
 
       jest.spyOn(mongoose, 'startSession').mockResolvedValue(mockSession as any);
-      mockSeatRepository.findOneAndUpdate.mockResolvedValue(null);
+      mockSeatRepository.findOne.mockResolvedValue(null);
 
       await expect(
         seatHoldService.confirmSeat('10A', 'SK123', 'P12345')
-      ).rejects.toThrow('Seat hold not found or expired');
+      ).rejects.toThrow('Seat 10A not found');
+    });
+
+    it('should throw error if seat not in HELD state', async () => {
+      const mockSeat = {
+        seatId: '10A',
+        flightId: 'SK123',
+        state: SeatState.AVAILABLE,
+        heldByPassengerId: null,
+      };
+
+      const mockSession = {
+        withTransaction: jest.fn(async (callback) => {
+          return await callback();
+        }),
+        endSession: jest.fn(),
+      };
+
+      jest.spyOn(mongoose, 'startSession').mockResolvedValue(mockSession as any);
+      mockSeatRepository.findOne.mockResolvedValue(mockSeat as any);
+
+      await expect(
+        seatHoldService.confirmSeat('10A', 'SK123', 'P12345')
+      ).rejects.toThrow('Seat 10A is AVAILABLE, cannot confirm');
     });
   });
 

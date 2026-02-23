@@ -27,6 +27,11 @@ async function bootstrap() {
     const { publisher, subscriber } = createPubSubClients();
     const eventBus = new EventBus(publisher, subscriber);
 
+    // Wait for EventBus to be ready
+    logger.info('Waiting for EventBus to be ready...');
+    await eventBus.ready();
+    logger.info('EventBus is ready');
+
     const checkinRepository = new CheckInRepository();
     const weightClient = new WeightServiceClient();
     const baggageValidator = new BaggageValidatorService(weightClient);

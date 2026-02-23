@@ -46,4 +46,8 @@ temp/
 postman/
 scripts/*test*
 test-concurrent*
+*.txt
+
+
+coverage/
 

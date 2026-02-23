@@ -6,6 +6,7 @@ export const createCheckInRoutes = (controller: CheckInController): Router => {
 
   router.post('/checkin/start', controller.startCheckIn);
   router.post('/checkin/complete', controller.completeCheckIn);
+  router.get('/checkin/:checkInId', controller.getCheckIn);
   router.post('/checkin/:checkInId/cancel', controller.cancelCheckIn);
 
   return router;

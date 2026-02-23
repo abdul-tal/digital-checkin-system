@@ -3,10 +3,15 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IWaitlist extends Document {
   waitlistId: string;
   passengerId: string;
+  checkInId: string;
   flightId: string;
   seatId: string;
   priorityScore: number;
   loyaltyTier: 'PLATINUM' | 'GOLD' | 'SILVER' | 'REGULAR';
+  baggage?: {
+    count: number;
+    weights?: number[];
+  };
   createdAt: Date;
   expiresAt: Date;
 }
@@ -15,6 +20,7 @@ const WaitlistSchema = new Schema<IWaitlist>(
   {
     waitlistId: { type: String, required: true, unique: true, maxlength: 50 },
     passengerId: { type: String, required: true, maxlength: 50 },
+    checkInId: { type: String, required: true, maxlength: 50 },
     flightId: { type: String, required: true, maxlength: 20 },
     seatId: { type: String, required: true, maxlength: 10 },
     priorityScore: { type: Number, required: true, min: 0 },
@@ -22,6 +28,13 @@ const WaitlistSchema = new Schema<IWaitlist>(
       type: String,
       required: true,
       enum: ['PLATINUM', 'GOLD', 'SILVER', 'REGULAR'],
+    },
+    baggage: {
+      type: {
+        count: { type: Number, required: true, min: 0, max: 5 },
+        weights: { type: [Number], required: false },
+      },
+      required: false,
     },
     expiresAt: { type: Date, required: true },
   },
