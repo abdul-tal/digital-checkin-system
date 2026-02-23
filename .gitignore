@@ -9,7 +9,6 @@ build/
 *.tsbuildinfo
 
 # Environment variables
-.env
 .env.local
 .env.*.local
 
@@ -42,11 +41,9 @@ data/
 tmp/
 temp/
 
-*.md*
 postman/
 scripts/*test*
 test-concurrent*
-*.txt
 
 
 coverage/

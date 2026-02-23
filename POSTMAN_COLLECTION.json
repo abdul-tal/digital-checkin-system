@@ -1,0 +1,1125 @@
+{
+  "info": {
+    "name": "SkyHigh Check-In System - Demo Scenarios",
+    "description": "Complete demo flow for all 7 scenarios showcasing the Digital Check-In System capabilities.\n\n**Demo Flow:**\n1. Simple check-in (<25kg baggage)\n2. Overweight baggage with payment\n3. Seat already taken error\n4. Cancel check-in\n5. Hold expiration\n6. Waitlist with auto-complete\n7. Abuse detection\n\n**Prerequisites:**\n- All 8 services running\n- Redis & MongoDB running (docker-compose up -d)\n- Seed data loaded (npm run seed)\n- SEAT_HOLD_DURATION_SECONDS=20 in .env for faster testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token_userA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_userB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_userC",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_userE",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_userX",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_attacker",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkin_id_A",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkin_id_B",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkin_id_C",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkin_id_E",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "checkin_id_X",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payment_id_B",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "waitlist_id_E",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Setup & Health Check",
+      "item": [
+        {
+          "name": "Health Check - All Services",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verify API Gateway is running. All services should return 200 OK."
+          }
+        },
+        {
+          "name": "Login - User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.collectionVariables.set('token_userA', jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userA@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login User A for simple check-in demo"
+          }
+        },
+        {
+          "name": "Login - User B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token_userB', jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userB@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login User B for overweight baggage demo"
+          }
+        },
+        {
+          "name": "Login - User C",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token_userC', jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userC@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login User C for hold expiration demo"
+          }
+        },
+        {
+          "name": "Login - User E",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token_userE', jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userE@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login User E for waitlist demo"
+          }
+        },
+        {
+          "name": "Login - User X",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token_userX', jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userX@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login User X for seat conflict demo"
+          }
+        },
+        {
+          "name": "Login - Attacker",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token_attacker', jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"attacker@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login Attacker user for abuse detection demo"
+          }
+        },
+        {
+          "name": "Get Initial Seat Map",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Seat map retrieved', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('seats');",
+                  "    console.log('Total seats:', jsonData.seats.length);",
+                  "    const available = jsonData.seats.filter(s => s.state === 'AVAILABLE');",
+                  "    console.log('Available seats:', available.length);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_userA}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/flights/SK123/seatmap",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "flights", "SK123", "seatmap"]
+            },
+            "description": "Show initial seat map with 180 available seats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 1: Simple Check-In (UserA - Seat 12A, <25kg)",
+      "description": "**Scenario:** UserA checks in with 1 bag (<25kg), gets boarding pass immediately.\n\n**Flow:**\n1. Start check-in\n2. Complete check-in (seat 12A + 1 bag)\n3. Receive boarding pass (state: COMPLETED)\n\n**Expected:** Immediate completion, no payment needed",
+      "item": [
+        {
+          "name": "1.1 Start Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in started', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('checkInId');",
+                  "    pm.expect(jsonData.state).to.eql('IN_PROGRESS');",
+                  "    pm.collectionVariables.set('checkin_id_A', jsonData.checkInId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userA}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P_UserA\",\n  \"userId\": \"U_UserA\",\n  \"bookingId\": \"BK_001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "start"]
+            },
+            "description": "UserA starts check-in for flight SK123"
+          }
+        },
+        {
+          "name": "1.2 Complete Check-In (Seat 12A, 1 Bag)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in completed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.state).to.eql('COMPLETED');",
+                  "    pm.expect(jsonData).to.have.property('boardingPass');",
+                  "    pm.expect(jsonData.boardingPass.seatNumber).to.eql('12A');",
+                  "    console.log('✅ UserA boarding pass generated for seat 12A');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userA}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkin_id_A}}\",\n  \"passengerId\": \"P_UserA\",\n  \"userId\": \"U_UserA\",\n  \"seatId\": \"12A\",\n  \"baggage\": {\n    \"count\": 1,\n    \"weights\": [20]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "complete"]
+            },
+            "description": "Complete check-in with seat 12A and 1 bag (20kg). Weight is provided in request for deterministic demo result. Since 20kg < 25kg limit, check-in completes immediately without payment."
+          }
+        },
+        {
+          "name": "1.3 Verify Seat 12A is CONFIRMED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Seat 12A confirmed by UserA', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    const seat12A = jsonData.seats.find(s => s.seatId === '12A');",
+                  "    pm.expect(seat12A.state).to.eql('CONFIRMED');",
+                  "    pm.expect(seat12A.confirmedByPassengerId).to.eql('P_UserA');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_userA}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/flights/SK123/seatmap",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "flights", "SK123", "seatmap"]
+            },
+            "description": "Verify seat 12A is in CONFIRMED state"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 2: Overweight Baggage (UserB - Seat 13B, >25kg)",
+      "description": "**Scenario:** UserB checks in with 2 bags (28kg + 24kg), must pay baggage fee.\n\n**Flow:**\n1. Start check-in\n2. Complete check-in (seat 13B + 2 bags with weights: [28, 24])\n3. First bag (28kg) triggers $100 fee\n4. Receive payment URL (state: AWAITING_PAYMENT)\n5. Confirm payment (simulated)\n6. Check-in auto-completes via webhook\n7. Receive boarding pass\n\n**Note:** Weights are provided in request for deterministic demo results.",
+      "item": [
+        {
+          "name": "2.1 Start Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in started', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('checkin_id_B', jsonData.checkInId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userB}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P_UserB\",\n  \"userId\": \"U_UserB\",\n  \"bookingId\": \"BK_002\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "start"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Complete Check-In (Seat 13B, 2 Bags)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment required for overweight bag', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.state).to.eql('AWAITING_PAYMENT');",
+                  "    pm.expect(jsonData).to.have.property('paymentUrl');",
+                  "    pm.expect(jsonData.baggageFee).to.eql(100);",
+                  "    ",
+                  "    console.log('✅ OVERWEIGHT DETECTED! Payment required: $' + jsonData.baggageFee);",
+                  "    console.log('💳 Payment URL:', jsonData.paymentUrl);",
+                  "    ",
+                  "    const paymentId = jsonData.paymentUrl.split('/').pop();",
+                  "    pm.collectionVariables.set('payment_id_B', paymentId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userB}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkin_id_B}}\",\n  \"passengerId\": \"P_UserB\",\n  \"userId\": \"U_UserB\",\n  \"seatId\": \"13B\",\n  \"baggage\": {\n    \"count\": 2,\n    \"weights\": [28, 24]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "complete"]
+            },
+            "description": "Complete check-in with 2 bags (28kg + 24kg). First bag exceeds 25kg limit, triggering $100 baggage fee. Returns AWAITING_PAYMENT with paymentUrl for deterministic demo."
+          }
+        },
+        {
+          "name": "2.3 Confirm Payment (Simulated)",
+            "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment confirmed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql('COMPLETED');",
+                  "    console.log('✅ Payment confirmed - check-in will auto-complete via webhook');",
+                  "    console.log('   Wait 2-3 seconds for webhook processing');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardNumber\": \"4111111111111111\",\n  \"amount\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payments/{{payment_id_B}}/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payments", "{{payment_id_B}}", "confirm"]
+            },
+            "description": "Simulates payment confirmation for $100 baggage fee. This publishes payment.confirmed event which triggers check-in auto-completion via webhook."
+          }
+        },
+        {
+          "name": "2.4 Verify Check-In Completed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in completed after payment', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.state).to.eql('COMPLETED');",
+                  "    pm.expect(jsonData).to.have.property('boardingPass');",
+                  "    console.log('✅ UserB boarding pass generated for seat 13B');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_userB}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/{{checkin_id_B}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "{{checkin_id_B}}"]
+            },
+            "description": "Verify UserB's check-in is completed with boarding pass after payment"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 3: Seat Already Taken (UserX tries Seat 12A)",
+      "description": "**Scenario:** UserX tries to book seat 12A which is already CONFIRMED by UserA.\n\n**Expected:** 409 Conflict error with alternative seat suggestions",
+      "item": [
+        {
+          "name": "3.1 Start Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in started', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('checkin_id_X', jsonData.checkInId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userX}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P_UserX\",\n  \"userId\": \"U_UserX\",\n  \"bookingId\": \"BK_003\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "start"]
+            }
+          }
+        },
+        {
+          "name": "3.2 Try to Book Seat 12A (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Seat unavailable error', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error.code).to.include('SEAT');",
+                  "    console.log('✅ Conflict detected: Seat 12A already taken');",
+                  "    ",
+                  "    if (jsonData.error.suggestions) {",
+                  "        console.log('💡 Alternative seats:', jsonData.error.suggestions);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userX}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkin_id_X}}\",\n  \"passengerId\": \"P_UserX\",\n  \"userId\": \"U_UserX\",\n  \"seatId\": \"12A\",\n  \"baggage\": {\n    \"count\": 0,\n    \"weights\": []\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "complete"]
+            },
+            "description": "UserX attempts to book seat 12A which is already CONFIRMED by UserA. Should return 409 error with alternative seat suggestions."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 4: Cancel Check-In (UserB - Seat 13B Released)",
+      "description": "**Scenario:** UserB cancels their check-in, seat 13B becomes available again.\n\n**Expected:** Seat state changes from CONFIRMED to AVAILABLE",
+      "item": [
+        {
+          "name": "4.1 Cancel Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in cancelled', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.state).to.eql('CANCELLED');",
+                  "    pm.expect(jsonData.seatId).to.eql('13B');",
+                  "    console.log('✅ UserB check-in cancelled');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userB}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P_UserB\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/{{checkin_id_B}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "{{checkin_id_B}}", "cancel"]
+            },
+            "description": "UserB cancels their check-in. Seat 13B will be released and become AVAILABLE."
+          }
+        },
+        {
+          "name": "4.2 Verify Seat 13B is AVAILABLE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Seat 13B released', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    const seat13B = jsonData.seats.find(s => s.seatId === '13B');",
+                  "    pm.expect(seat13B.state).to.eql('AVAILABLE');",
+                  "    pm.expect(seat13B.confirmedByPassengerId).to.be.null;",
+                  "    console.log('✅ Seat 13B is now AVAILABLE after cancellation');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_userA}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/flights/SK123/seatmap",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "flights", "SK123", "seatmap"]
+            },
+            "description": "Verify seat 13B returned to AVAILABLE state after cancellation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 5: Hold Expiration (UserC - Seat 14C)",
+      "description": "**Scenario:** UserC completes check-in with overweight baggage (30kg), doesn't pay, hold expires after 20 seconds.\n\n**Flow:**\n1. Start check-in\n2. Complete with 2 bags (30kg + 22kg) - triggers payment\n3. Don't pay - abandon the flow\n4. Seat stays HELD\n5. Wait 20+ seconds\n6. Seat automatically released (AVAILABLE)\n\n**Note:** Weights provided in request ensure deterministic payment trigger. SEAT_HOLD_DURATION_SECONDS=20 for faster testing.",
+      "item": [
+        {
+          "name": "5.1 Start Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in started', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('checkin_id_C', jsonData.checkInId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userC}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P_UserC\",\n  \"userId\": \"U_UserC\",\n  \"bookingId\": \"BK_004\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "start"]
+            }
+          }
+        },
+        {
+          "name": "5.2 Complete with 5 Bags (High Overweight Chance)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment required - seat HELD', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.state).to.eql('AWAITING_PAYMENT');",
+                  "    pm.expect(jsonData.baggageFee).to.eql(100);",
+                  "    console.log('✅ Seat 14C is HELD (awaiting payment)');",
+                  "    console.log('   DO NOT PAY - let it expire');",
+                  "    console.log('   Wait 25+ seconds for hold to expire');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userC}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkInId\": \"{{checkin_id_C}}\",\n  \"passengerId\": \"P_UserC\",\n  \"userId\": \"U_UserC\",\n  \"seatId\": \"14C\",\n  \"baggage\": {\n    \"count\": 2,\n    \"weights\": [30, 22]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "complete"]
+            },
+            "description": "Complete with 2 bags (30kg + 22kg). First bag triggers $100 fee, resulting in AWAITING_PAYMENT state. Seat 14C stays HELD. Do NOT pay - let the hold expire in 20 seconds."
+          }
+        },
+        {
+          "name": "5.3 Verify Seat 14C is HELD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Seat 14C is held', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    const seat14C = jsonData.seats.find(s => s.seatId === '14C');",
+                  "    pm.expect(seat14C.state).to.eql('HELD');",
+                  "    pm.expect(seat14C.heldByPassengerId).to.eql('P_UserC');",
+                  "    console.log('✅ Seat 14C is HELD');",
+                  "    console.log('   Hold expires at:', seat14C.holdExpiresAt);",
+                  "    console.log('   Wait 25+ seconds, then run next request');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_userC}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/flights/SK123/seatmap",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "flights", "SK123", "seatmap"]
+            },
+            "description": "Verify seat 14C is in HELD state (not CONFIRMED) because payment was not completed"
+          }
+        },
+        {
+          "name": "5.4 [WAIT 25 SECONDS] Verify Hold Expired",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Seat 14C released after expiration', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    const seat14C = jsonData.seats.find(s => s.seatId === '14C');",
+                  "    pm.expect(seat14C.state).to.eql('AVAILABLE');",
+                  "    pm.expect(seat14C.heldByPassengerId).to.be.null;",
+                  "    console.log('✅ Hold expired! Seat 14C is now AVAILABLE');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_userC}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/flights/SK123/seatmap",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "flights", "SK123", "seatmap"]
+            },
+            "description": "**RUN AFTER 25 SECONDS:** Verify seat 14C was automatically released by the hold expiration background job. Seat should be AVAILABLE now."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 6: Waitlist Auto-Complete (UserE - Seat 15E)",
+      "description": "**Scenario:** UserE joins waitlist, when seat becomes available, check-in auto-completes with boarding pass delivery.\n\n**Flow:**\n1. UserX holds seat 15E (creates unavailable condition)\n2. UserE starts check-in\n3. UserE joins waitlist (with checkInId + baggage)\n4. Wait 20+ seconds for hold to expire\n5. AUTOMATIC: Check-in completes, boarding pass generated\n6. UserE receives notifications\n\n**Key Feature:** Zero manual steps after joining waitlist!",
+      "item": [
+        {
+          "name": "6.1 UserX Holds Seat 15E (Setup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Seat 15E held by UserX', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.seatId).to.eql('15E');",
+                  "    pm.expect(jsonData).to.have.property('expiresAt');",
+                  "    console.log('✅ UserX holding seat 15E');",
+                  "    console.log('   Expires at:', jsonData.expiresAt);",
+                  "    console.log('   Hold duration:', jsonData.remainingSeconds, 'seconds');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userX}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flightId\": \"SK123\",\n  \"seatId\": \"15E\",\n  \"passengerId\": \"P_UserX\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/seats/hold",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "seats", "hold"]
+            },
+            "description": "UserX temporarily holds seat 15E. This makes 15E unavailable for UserE, triggering the waitlist flow."
+          }
+        },
+        {
+          "name": "6.2 UserE Starts Check-In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in started', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('checkInId');",
+                  "    pm.collectionVariables.set('checkin_id_E', jsonData.checkInId);",
+                  "    console.log('✅ UserE check-in started:', jsonData.checkInId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userE}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P_UserE\",\n  \"userId\": \"U_UserE\",\n  \"bookingId\": \"BK_UserE_001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "start"]
+            },
+            "description": "UserE starts check-in. This creates a check-in session that will be automatically completed when seat 15E becomes available."
+          }
+        },
+        {
+          "name": "6.3 UserE Joins Waitlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Joined waitlist successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('waitlistId');",
+                  "    pm.expect(jsonData).to.have.property('position');",
+                  "    pm.collectionVariables.set('waitlist_id_E', jsonData.waitlistId);",
+                  "    console.log('✅ UserE joined waitlist');",
+                  "    console.log('   Position:', jsonData.position);",
+                  "    console.log('   Priority:', jsonData.priority);",
+                  "    console.log('');",
+                  "    console.log('🎯 Now wait 25+ seconds for magic to happen!');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token_userE}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"P_UserE\",\n  \"checkInId\": \"{{checkin_id_E}}\",\n  \"userId\": \"U_UserE\",\n  \"flightId\": \"SK123\",\n  \"seatId\": \"15E\",\n  \"loyaltyTier\": \"GOLD\",\n  \"bookingTimestamp\": \"{{$isoTimestamp}}\",\n  \"hasSpecialNeeds\": false,\n  \"baggage\": {\n    \"count\": 1,\n    \"weights\": [18]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/waitlist/join",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "waitlist", "join"]
+            },
+            "description": "**NEW API:** UserE joins waitlist with checkInId and baggage (1 bag, 18kg). When seat 15E becomes available (after UserX's hold expires), the system will AUTOMATICALLY complete the entire check-in and send boarding pass. Weight is under limit, so no payment needed."
+          }
+        },
+        {
+          "name": "6.4 [WAIT 25 SECONDS] Verify Auto-Completed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in auto-completed', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.state).to.eql('COMPLETED');",
+                  "    pm.expect(jsonData.seatId).to.eql('15E');",
+                  "    pm.expect(jsonData).to.have.property('boardingPass');",
+                  "    pm.expect(jsonData.boardingPass).to.have.property('qrCode');",
+                  "    console.log('🎉 SUCCESS! Check-in auto-completed!');",
+                  "    console.log('✅ State: COMPLETED');",
+                  "    console.log('✅ Seat: 15E assigned');",
+                  "    console.log('✅ Boarding pass: Generated');",
+                  "    console.log('');",
+                  "    console.log('🚀 UserE did NOTHING after joining waitlist!');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_userE}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/checkin/{{checkin_id_E}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "checkin", "{{checkin_id_E}}"]
+            },
+            "description": "**RUN AFTER 25 SECONDS:** Verify UserE's check-in was automatically completed when UserX's hold expired. Check-in should be COMPLETED with boarding pass, not just IN_PROGRESS."
+          }
+        },
+        {
+          "name": "6.5 Verify Seat 15E is CONFIRMED by UserE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Seat 15E confirmed by UserE', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    const seat15E = jsonData.seats.find(s => s.seatId === '15E');",
+                  "    pm.expect(seat15E.state).to.eql('CONFIRMED');",
+                  "    pm.expect(seat15E.confirmedByPassengerId).to.eql('P_UserE');",
+                  "    console.log('✅ Seat 15E is CONFIRMED (not just HELD)');",
+                  "    console.log('✅ Confirmed by: P_UserE');",
+                  "    console.log('✅ Full waitlist automation verified!');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_userE}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/flights/SK123/seatmap",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "flights", "SK123", "seatmap"]
+            },
+            "description": "Verify seat 15E is CONFIRMED by UserE (not just HELD). This proves the waitlist system completed the full check-in flow automatically."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Demo 7: Abuse Detection (Rapid Access)",
+      "description": "**Scenario:** Demonstrate abuse detection by making >50 seat map requests in 2 seconds.\n\n**Flow:**\n1. Make rapid seat map requests (use Runner with 60 iterations, 0ms delay)\n2. First ~50 succeed (200 OK)\n3. Remaining get 403 BLOCKED\n4. Verify user is blocked\n\n**Note:** Use Postman Collection Runner with 60 iterations and 0ms delay between requests.",
+      "item": [
+        {
+          "name": "7.1 Rapid Seat Map Access (Run 60x)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const iteration = pm.info.iteration + 1;",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test(`Request ${iteration}: Success (200 OK)`, function () {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "    console.log(`✅ Request ${iteration}: Allowed`);",
+                  "} else if (pm.response.code === 403) {",
+                  "    pm.test(`Request ${iteration}: Blocked (403)`, function () {",
+                  "        pm.response.to.have.status(403);",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.error.code).to.include('BLOCKED');",
+                  "    });",
+                  "    console.log(`🚫 Request ${iteration}: BLOCKED (abuse detected)`);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token_attacker}}"}],
+            "url": {
+              "raw": "{{base_url}}/api/v1/flights/SK123/seatmap",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "flights", "SK123", "seatmap"]
+            },
+            "description": "**USE COLLECTION RUNNER:** Run this request 60 times with 0ms delay.\n\nSettings:\n- Iterations: 60\n- Delay: 0ms\n\nExpected:\n- Requests 1-50: 200 OK\n- Requests 51-60: 403 BLOCKED\n\nThis demonstrates the abuse detection system blocking rapid access patterns."
+          }
+        },
+        {
+          "name": "7.2 Verify User is Blocked",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User is blocked', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.blocked).to.be.true;",
+                  "    pm.expect(jsonData).to.have.property('blockedUntil');",
+                  "    console.log('✅ Attacker is blocked');",
+                  "    console.log('   Blocked until:', jsonData.blockedUntil);",
+                  "    console.log('   Reason:', jsonData.reason || 'Rapid access pattern detected');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"U_attacker\",\n  \"ip\": \"127.0.0.1\",\n  \"action\": \"SEAT_MAP_ACCESS\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3007/api/v1/abuse/check",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3007",
+              "path": ["api", "v1", "abuse", "check"]
+            },
+            "description": "Check block status in Abuse Detection Service. Should show user is blocked with blockedUntil timestamp."
+          }
+        }
+      ]
+    }
+  ]
+}
